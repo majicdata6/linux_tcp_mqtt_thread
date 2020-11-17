@@ -17,14 +17,21 @@
 #include <errno.h>
 #include <arpa/inet.h>
 
+#include <stdint.h>	//uint8_t
 #include "ccl.h"
-#include <stdint.h>
+#include "cJSON.h"
+
+#include "tcp_mqtt_thread.h"
+
+
+
 
 //macro definition 
-#define TCM_ID_LEN 		4
-#define DEV_NAME_LEN 	32
+#define TCM_ID_LEN 			4
+#define DEV_NAME_LEN 		32
+#define MQTT_TOPIC_NAME_LEN	32
 
-#define NUM_THREADS	    4
+#define NUM_THREADS	    	4
 
 // #define ADDRESS         "172.16.254.211:1883"           //更改此处地址
 // #define CLIENTID        "aaabbbccc_pub"                 //更改此处客户端ID
@@ -53,92 +60,6 @@ char *payload=buf;
 int payloadlen=0;
 
 
-//The macro structure
-typedef struct 
-{
-	int tcp_send_flag = false;
-
-	char *pData = NULL;
-	int dataLen = 0;
-
-}tTcpMessageDealTypedef;
-
-typedef struct 
-{
-	int mqtt_push_flag = false;
-	int mqtt_read_flag = false;
-	int mqtt_writ_flag = false;
-
-	char *pMqttTopic = NULL;
-	int mqttTopicLen = 0;
-	char *pMqttMessgae = NULL;
-	int mqttMessageLen = 0;
-
-}tMqttMessageDealTypedef;
-
-typedef struct 
-{
-	int8_t 	devName[DEV_NAME_LEN]	= {0};
-	uint8_t devId[TCM_ID_LEN]  		= {0};
-
-}tDev_2channelCtl_Typedef;
-
-typedef struct 
-{
-	int8_t 	devName[DEV_NAME_LEN]	= {0};
-	uint8_t devId[TCM_ID_LEN]  		= {0};
-
-}tDev_4channelCtl_Typedef;
-
-typedef struct 
-{
-	int8_t 	devName[DEV_NAME_LEN]	= {0};
-	uint8_t devId[TCM_ID_LEN]  		= {0};
-
-}tDev_CurtainCtl_Typedef;
-
-typedef struct 
-{
-	int8_t 	devName[DEV_NAME_LEN]	= {0};
-	uint8_t devId[TCM_ID_LEN]  		= {0};
-
-}tDev_LedCtl_Typedef;
-
-typedef struct 
-{
-	int8_t 	devName[DEV_NAME_LEN]	= {0};
-	uint8_t devId[TCM_ID_LEN]  		= {0};
-
-}tDev_TempCtl_Typedef;
-
-typedef struct 
-{
-	int8_t 	devName[DEV_NAME_LEN]	= {0};
-	uint8_t devId[TCM_ID_LEN]  		= {0};
-
-}tDev_PWSwitchCtl_Typedef;
-
-typedef struct 
-{
-	int8_t 	devName[DEV_NAME_LEN]	= {0};
-	uint8_t devId[TCM_ID_LEN]  		= {0};
-
-}tDev_DoorMagneticCtl_Typedef;
-
-typedef struct 
-{
-	int8_t 	devName[DEV_NAME_LEN]	= {0};
-	uint8_t devId[TCM_ID_LEN]  		= {0};
-
-}tDev_BodySensor_Typedef;
-
-typedef struct 
-{
-	int8_t 	devName[DEV_NAME_LEN]	= {0};
-	uint8_t devId[TCM_ID_LEN]  		= {0};
-
-}tDev_HumTempSensor_Typedef;
-
 
 
 
@@ -159,6 +80,10 @@ char mqtt_client_username[25]={0};
 char mqtt_client_password[25]={0};
 
 char mqtt_pub_client_topic[256]={0};
+
+
+//全局变量
+tDev_4channelCtl_Typedef tDev4chCtl;
 
 
 volatile MQTTClient_deliveryToken deliveredtoken;
@@ -184,6 +109,12 @@ int msgarrvd(void *context, char *topicName, int topicLen, MQTTClient_message *m
 	strcpy(&s_buf[str_len],message->payload);
 	s_buf_send_len += message->payloadlen;
 
+	// //json数据解析
+	// cJSON *rjson=cJSON_Parse(s_buf);
+	// cJSON *json_item=cJSON_GetObjectItem(rjson,"name");
+	// printf("%s\n", json_item->valuestring);
+
+
 	TCP_SEND_FLAG = true;
 
 	printf("Message arrived\n");
@@ -196,6 +127,8 @@ int msgarrvd(void *context, char *topicName, int topicLen, MQTTClient_message *m
 		printf(" \n out!!");
 		CONNECT = 0;
 	}
+
+
 	
 	for(i=0; i<message->payloadlen; i++)
 	{
@@ -229,8 +162,8 @@ void *subClient(void *threadid)
 	
 	conn_opts.keepAliveInterval = 20;
 	conn_opts.cleansession = 1;
-	conn_opts.username = mqtt_username;
-	conn_opts.password = mqtt_password;
+	conn_opts.username = mqtt_client_username;
+	conn_opts.password = mqtt_client_password;
 	
 	MQTTClient_setCallbacks(client, NULL, connlost, msgarrvd, delivered);
 
@@ -240,16 +173,16 @@ void *subClient(void *threadid)
 		exit(EXIT_FAILURE);
 	}
 	printf("Subscribing to topic %s\nfor client %s using QoS%d\n\n"
-		   "Press Q<Enter> to quit\n\n", mqtt_topic, mqtt_sub_client_id, mqtt_sub_qos);
+		   "Press Q<Enter> to quit\n\n", tDev4chCtl.mqttTopicName, mqtt_sub_client_id, mqtt_sub_qos);
 	
-	MQTTClient_subscribe(client, mqtt_topic, mqtt_sub_qos);
+	MQTTClient_subscribe(client, tDev4chCtl.mqttTopicName, mqtt_sub_qos);
 
 	do 
 	{
 		ch = getchar();
 	} while(ch!='Q' && ch != 'q');
 
-	MQTTClient_unsubscribe(client, mqtt_topic);
+	MQTTClient_unsubscribe(client, tDev4chCtl.mqttTopicName);
 	MQTTClient_disconnect(client, 10000);
 	MQTTClient_destroy(&client);
    
@@ -279,8 +212,8 @@ void *pubClient(void *threadid)
 
 	conn_opts.keepAliveInterval = 20;
 	conn_opts.cleansession = 1;
-	conn_opts.username = mqtt_username;
-	conn_opts.password = mqtt_password;
+	conn_opts.username = mqtt_client_username;
+	conn_opts.password = mqtt_client_password;
 
 	 //使用MQTTClient_connect将client连接到服务器，使用指定的连接选项。成功则返回MQTTCLIENT_SUCCESS
 	if ((rc = MQTTClient_connect(client, &conn_opts)) != MQTTCLIENT_SUCCESS)
@@ -294,16 +227,18 @@ void *pubClient(void *threadid)
 	{
 		if(PUB_FLAG)
 		{
-			pubmsg.payload = payload;//;
-			pubmsg.payloadlen = payloadlen; //
+			// pubmsg.payload = payload;//;
+			// pubmsg.payloadlen = payloadlen; //
+			pubmsg.payload = tDev4chCtl.mqttData;//;
+			pubmsg.payloadlen = tDev4chCtl.mqttDataLen; //
 			pubmsg.qos = mqtt_pub_qos;
 			pubmsg.retained = 0;
 			
 			PUB_FLAG = false;
-			MQTTClient_publishMessage(client, mqtt_topic, &pubmsg, &token);
+			MQTTClient_publishMessage(client, mqtt_pub_client_topic, &pubmsg, &token);
 			printf("Waiting for up to %d seconds for publication of %s\n"
 					"on topic %s for client with ClientID: %s\n",
-					(int)(TIMEOUT/1000), payload, mqtt_topic, mqtt_pub_client_id);
+					(int)(mqtt_timeout/1000), payload, mqtt_pub_client_topic, mqtt_pub_client_id);
 			rc = MQTTClient_waitForCompletion(client, token, mqtt_timeout);
 			printf("Message with delivery token %d delivered\n", token);
 		}
@@ -361,15 +296,6 @@ void *tcpClient_r(void *threadid)
 	while(1)
 	{
 
-		// rec_len=send(socket_fd,buf,strlen(buf),0);
-
-		// if(TCP_SEND_FLAG)
-		// {
-		//     TCP_SEND_FLAG = false;
-		//     rec_len=send(socket_fd, s_buf, s_buf_send_len, 0);
-		//     printf("send_tcp_data_len=%d\n", rec_len);
-		// }
-
 		if((rec_len = recv(socket_fd, buf, sizeof(buf), 0)) == -1) 
 		{  
 		   perror("recv error");  
@@ -394,17 +320,9 @@ void *tcpClient_w(void *threadid)
    tid = (long)threadid;
    printf("Hello World! It's me, thread #%ld!\n", tid);
 
-	// char ip_buf[16]={0};
-
-	// char *server_ip_addr = ip_buf;
-	// int server_ip_port = 10086;
-
-	// //读取配置文件，获取ip/port
-	// GetProfileString("./tcpclient.conf", "tcpclient_ip", ip_buf);
-	// GetProfileInt("./tcpclient.conf", "tcpclient_port", &server_ip_port);
 
 	char *send_message = "hello";
-	// char buf[1024] = {0};
+	
 	int rec_len = 0;
 
 	int socket_fd = socket(AF_INET, SOCK_STREAM, 0);
@@ -437,22 +355,12 @@ void *tcpClient_w(void *threadid)
 		if(TCP_SEND_FLAG)
 		{
 			TCP_SEND_FLAG = false;
-			rec_len=send(socket_fd, s_buf, s_buf_send_len, 0);
+			// rec_len=send(socket_fd, s_buf, s_buf_send_len, 0);
+			rec_len=send(socket_fd, &tDev4chCtl.statusCh1, 4, 0);
 			printf("send_tcp_data_len=%d\n", rec_len);
+			rec_len = 0;
 		}
 
-		// if((rec_len = recv(socket_fd, buf, sizeof(buf), 0)) == -1) 
-		// {  
-		//    perror("recv error");  
-		//    exit(1);  
-		// }
-		// buf[rec_len]='\0';
-
-		// payload = buf;
-		// payloadlen = rec_len+1;
-		// PUB_FLAG = true;
-		
-		// printf("%s\n",buf);
 	}
 	
 	close(socket_fd);
@@ -464,6 +372,8 @@ int main(int argc, char* argv[])
 	pthread_t threads[NUM_THREADS];
 	// long t;
 
+	
+
 	//tcp客户端 读取配置文件，获取ip/port
 	GetProfileString("./tcpclient.conf", "tcpclient_ip", ip_buf);
 	GetProfileInt("./tcpclient.conf", "tcpclient_port", &server_ip_port);
@@ -472,11 +382,88 @@ int main(int argc, char* argv[])
 	GetProfileString("./mqttclient.conf", "mqtt_address", mqtt_server_address);
 	GetProfileString("./mqttclient.conf", "mqtt_clientid", mqtt_pub_client_id);
 	GetProfileString("./mqttclient.conf", "mqtt_sub_clientid", mqtt_sub_client_id);
-	GetProfileString("./mqttclient.conf", "mqtt_timeout", mqtt_timeout);
+	GetProfileInt("./mqttclient.conf", "mqtt_timeout", &mqtt_timeout);
 	GetProfileString("./mqttclient.conf", "mqtt_username", mqtt_client_username);
 	GetProfileString("./mqttclient.conf", "mqtt_password", mqtt_client_password);
 
 	GetProfileString("./mqttclient.conf", "mqtt_topic", mqtt_pub_client_topic);
+
+	char testbuf[100]={0};
+	int testtimeout=0;
+
+	printf("%s\n", mqtt_server_address);
+	printf("%s\n", mqtt_pub_client_id);
+	printf("%s\n", mqtt_sub_client_id);
+	printf("%d\n", mqtt_timeout);
+	printf("%s\n", mqtt_client_username);
+	printf("%s\n", mqtt_client_password);
+	printf("%s\n", mqtt_pub_client_topic);
+	
+
+
+	// strcpy(mqtt_server_address,"172.16.254.211:1883");
+	// strcpy(mqtt_pub_client_id,"aaabbbccc_pub");
+	// strcpy(mqtt_sub_client_id,"aaabbbccc_sub");
+	// strcpy(mqtt_client_username,"test_user");
+	// strcpy(mqtt_client_password,"jim777");
+	// strcpy(mqtt_pub_client_topic,"mytest");
+	
+	// mqtt_timeout = 1000;
+
+	//全局变量初始化
+	tDev4chCtl.devNum = 1;
+	strcpy(tDev4chCtl.devName,"4chCtrl_1");
+	tDev4chCtl.statusCh1 = 0;
+	tDev4chCtl.statusCh2 = 1;
+	tDev4chCtl.statusCh3 = 0;
+	tDev4chCtl.statusCh4 = 0;
+
+	strcpy(tDev4chCtl.mqttTopicName,"4chennelCtrl/devNum1/4chCtrl_1");//"ah/15/gw1/4chennelCtrl/devNum1/4chCtrl_1"
+	
+	//json数据格式化
+
+	//创建json对象
+	cJSON *json=cJSON_CreateObject();
+
+	//在json对象上，添加数组
+	cJSON *array=NULL;
+	cJSON_AddItemToObject(json,"chStatus",array=cJSON_CreateArray());
+
+	//在array数组上,添加对象
+	cJSON *obj=NULL;
+	cJSON_AddItemToArray(array,obj=cJSON_CreateObject());
+	cJSON_AddItemToObject(obj,"ch1",cJSON_CreateString("off"));
+	cJSON_AddItemToObject(obj,"ch2",cJSON_CreateString("on"));
+	cJSON_AddStringToObject(obj,"ch3","off");
+	cJSON_AddStringToObject(obj,"ch4","off");
+	
+	//json数据 转化字符串
+	char *s=cJSON_Print(json);
+	strcpy(tDev4chCtl.mqttData,s);
+	printf("%s\n",s);
+	tDev4chCtl.mqttDataLen = strlen(tDev4chCtl.mqttData);
+
+	//json数据解析
+	cJSON *rjson=cJSON_Parse(s);
+	cJSON *json_arr_item=cJSON_GetObjectItem(rjson,"chStatus");
+	cJSON *object = cJSON_GetArrayItem(json_arr_item,0);   //因为这个对象是个数组获取，且只有一个元素所以写下标为0获取
+
+	/*下面就是可以重复使用cJSON_GetObjectItem来获取每个成员的值了*/
+	cJSON *item = cJSON_GetObjectItem(object,"ch1");  //
+	printf("ch1=%s\n",item->valuestring);
+
+	item = cJSON_GetObjectItem(object,"ch2");  //
+	printf("ch2=%s\n",item->valuestring);
+
+	item = cJSON_GetObjectItem(object,"ch3");  //
+	printf("ch3=%s\n",item->valuestring);
+
+	item = cJSON_GetObjectItem(object,"ch4");  //
+	printf("ch4=%s\n",item->valuestring);
+	
+	
+
+	
 
 
 	//应用线程创建
