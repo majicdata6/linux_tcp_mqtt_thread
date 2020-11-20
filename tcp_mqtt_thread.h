@@ -2,9 +2,16 @@
 #define TCP_MQTT_THREAD_H
 
 
+#include "readConfigCsv.h"
+
+//macro definition 
+
+
+#define NUM_THREADS	    		4
 
 
 //The macro structure
+
 typedef struct 
 {
 	int tcp_send_flag ;
@@ -28,26 +35,8 @@ typedef struct
 }tMqttMessageDealTypedef;
 
 
-typedef struct 
-{
-	int 	devNum;
-	char 	devName[DEV_NAME_LEN];
-	uint8_t devId[TCM_ID_LEN];
-	
-	uint8_t statusCh1;
-	uint8_t statusCh2;
-	uint8_t statusCh3;
-	uint8_t statusCh4;
-	
 
-	char 	mqttTopicName[MQTT_TOPIC_NAME_LEN];
-	char	mqttData[60];
-	int 	mqttDataLen;
-
-}tDev_4channelCtl_Typedef;
-
-
-
+/*
 typedef struct 
 {
 	int8_t 	devName[DEV_NAME_LEN];
@@ -98,7 +87,7 @@ typedef struct
 }tDev_HumTempSensor_Typedef;
 
 
-
+*/
 
 
 

@@ -25,14 +25,6 @@
 
 
 
-
-//macro definition 
-#define TCM_ID_LEN 			4
-#define DEV_NAME_LEN 		32
-#define MQTT_TOPIC_NAME_LEN	32
-
-#define NUM_THREADS	    	4
-
 // #define ADDRESS         "172.16.254.211:1883"           //更改此处地址
 // #define CLIENTID        "aaabbbccc_pub"                 //更改此处客户端ID
 // #define SUB_CLIENTID    "aaabbbccc_sub"                 //更改此处客户端ID
@@ -462,9 +454,34 @@ int main(int argc, char* argv[])
 	printf("ch4=%s\n",item->valuestring);
 	
 	
+	//csv文件读取
 
+	// tDev_4channelCtl_Typedef *ptDev4chCtl = NULL;
+
+	// printf("csv_4ch_num=%d\n", getNameCount(DEV_CONFIG_CSV_FILE_NAME, DEV_TYPE_NAME_4CH_CTRL));
+	// tDevTypeNodeTotal.dev4chCtrlTotal = getNameCount(DEV_CONFIG_CSV_FILE_NAME, DEV_TYPE_NAME_4CH_CTRL);
 	
+	// tDevTypeNodeTotal.ptDev4ChCtl = (tDev_4channelCtl_Typedef*)calloc(tDevTypeNodeTotal.dev4chCtrlTotal, sizeof(tDev_4channelCtl_Typedef));
 
+	// printf("csv_4ch_num=%d\n", tDevTypeNodeTotal.dev4chCtrlTotal);
+	// printf("getConfigErr=%d\n", get4lCtrlConfig(DEV_CONFIG_CSV_FILE_NAME, tDevTypeNodeTotal.ptDev4ChCtl, tDevTypeNodeTotal.dev4chCtrlTotal));
+	
+	//初始化4路控制器的配置
+	initDevConfig(DEV_TYPE_NAME_4CH_CTRL);
+
+	tDev_4channelCtl_Typedef *tDev4chCtl = tDevTypeNodeTotal.ptDev4ChCtl;
+	
+	//打印配置结构体数据
+	for(int num=0; num<tDevTypeNodeTotal.dev4chCtrlTotal; num++)
+	{
+		printf("dev%dNum=%d\n",num, (tDev4chCtl + num)->devNum);
+		printf("dev%dName=%s\n",num, (tDev4chCtl + num)->devName);
+		printf("dev%dId=%02x %02x %02x %02x\n",num, (tDev4chCtl + num)->devId[0],(tDev4chCtl + num)->devId[1],(tDev4chCtl + num)->devId[2],(tDev4chCtl + num)->devId[3]);
+		printf("read%dCmd=%s\n",num, (tDev4chCtl + num)->readCmd);
+		printf("write%dCmd=%s\n",num, (tDev4chCtl + num)->writeCmd);
+		printf("\r\n");
+	}
+	
 
 	//应用线程创建
 	pthread_create(&threads[0], NULL, subClient, (void *)0);
