@@ -100,4 +100,7 @@ uint8_t get4lCtrlConfig(char *profile, tDev_4channelCtl_Typedef *ptDevBuf, int g
 //返回1成功 返回0失败 返回2-配置文件设备超出设备buff节点数
 uint8_t initDevConfig(char *pDevTypeName);
 
+//根据设备ID	获取设备4路控制器节点号（1~n）0没找到
+uint8_t getDev4ChCtlNode(uint8_t *pDevId);
+
 #endif

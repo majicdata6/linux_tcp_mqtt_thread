@@ -2,6 +2,8 @@
 #ifndef DEAL_TCP_DATA_H
 #define DEAL_TCP_DATA_H
 
+#include "readConfigCsv.h"
+
 #define AGREEMENT_CMD_HEAD              	0X55    //协议头
 #define AGREEMENT_CMD_HEAD_LEN      		0X05    //协议头数据长度
 #define AGREEMENT_CMD_OPTIONAL_LEN      	0X06    //选项数据长度
@@ -69,7 +71,7 @@ uint8_t getDevType(uint8_t *pTcpData);
 uint8_t getDevCmd(uint8_t *pData, uint8_t devType);
 
 //设备ID比较 相等返回1 不等返回0
-uint8_t compDevId(uint8_t *pDevId1, uint8_t *pDevId2);.
+uint8_t compDevId(uint8_t *pDevId1, uint8_t *pDevId2);
 
 //获取通道状态 成功返回 1 失败返回0
 //pStorData 指向通道状态存储区，格式ch1=0/1,ch2=0/1,ch3=0/1,ch4=0/1

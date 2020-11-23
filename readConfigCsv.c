@@ -413,20 +413,20 @@ uint8_t get4lCtrlConfig(char *profile, tDev_4channelCtl_Typedef *ptDevBuf, int g
 
 //设备配置初始化
 //返回1成功 返回0失败 返回2-配置文件设备超出设备buff节点数
-uint8_t initDevConfig(char *pDevTypeName)
+uint8_t initDevConfig(char *fileName,char *pDevTypeName)
 {
 
 	if(strcmp(DEV_TYPE_NAME_4CH_CTRL, pDevTypeName) == 0)
 	{
 		//获取数量
-		tDevTypeNodeTotal.dev4chCtrlTotal = getNameCount(DEV_CONFIG_CSV_FILE_NAME, DEV_TYPE_NAME_4CH_CTRL);
+		tDevTypeNodeTotal.dev4chCtrlTotal = getNameCount(fileName, DEV_TYPE_NAME_4CH_CTRL);
 		
 		if(tDevTypeNodeTotal.dev4chCtrlTotal > 0)
 		{
 			//分配空间
 			tDevTypeNodeTotal.ptDev4ChCtl = (tDev_4channelCtl_Typedef*)calloc(tDevTypeNodeTotal.dev4chCtrlTotal, sizeof(tDev_4channelCtl_Typedef));
 			//初始化设备配置内容
-			return get4lCtrlConfig(DEV_CONFIG_CSV_FILE_NAME, tDevTypeNodeTotal.ptDev4ChCtl, tDevTypeNodeTotal.dev4chCtrlTotal);
+			return get4lCtrlConfig(fileName, tDevTypeNodeTotal.ptDev4ChCtl, tDevTypeNodeTotal.dev4chCtrlTotal);
 		
 		}
 	}
@@ -440,5 +440,31 @@ uint8_t initDevConfig(char *pDevTypeName)
 	// }
 
 
+	return 0;
+}
+
+//根据设备ID	获取设备4路控制器节点号（1~n）0没找到
+uint8_t getDev4ChCtlNode(uint8_t *pDevId)
+{
+	int node = 0;
+	int nodeTotal=tDevTypeNodeTotal.dev4chCtrlTotal;
+	tDev_4channelCtl_Typedef *ptDevCtrl = tDevTypeNodeTotal.ptDev4ChCtl;
+	
+	uint8_t *pDevIdBuf = NULL;
+	
+	for(node=0; node<nodeTotal; node++)
+	{
+		pDevIdBuf = (ptDevCtrl + node)->devId;
+
+		for(uint8_t i=0; i<DEV_ID_LEN; i++)
+		{
+			if(*(pDevIdBuf + i) != *(pDevId + i))
+			{
+				continue;
+			}
+
+			return (node+1);
+		}
+	}
 	return 0;
 }
