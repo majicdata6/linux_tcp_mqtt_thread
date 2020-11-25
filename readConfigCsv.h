@@ -1,6 +1,8 @@
 #ifndef READ_CONFIG_CSV_H
 #define READ_CONFIG_CSV_H
 
+#include "tcmProData.h"	//
+
 // #include "tcp_mqtt_thread.h"
 
 #define DEV_CONFIG_CSV_FILE_NAME 		"./devconfig.CSV"
@@ -19,23 +21,21 @@
 #define CMD_EN							"YES"
 #define CMD_DISEN						"NO"
 
-#define TCM_ID_LEN 						4
-#define DEV_NAME_LEN 					32
-#define MQTT_TOPIC_NAME_LEN				64
-
 #define DEV_ID_LEN 						TCM_ID_LEN
 #define DEV_ID_STR_LEN					(2*DEV_ID_LEN)
 
+#define DEV_NAME_LEN 					32
+#define MQTT_TOPIC_NAME_LEN				64
 
 
 
 //结构体宏
 
-typedef struct 
+typedef struct tDev_4channelCtl
 {
 	int 	devNum;
 	char 	devName[DEV_NAME_LEN];
-	uint8_t devId[TCM_ID_LEN];
+	uint8_t devId[DEV_ID_LEN];
 	char	readCmd[4];
 	char 	writeCmd[4];
 	
@@ -51,7 +51,7 @@ typedef struct
 }tDev_4channelCtl_Typedef;
 
 
-typedef struct 
+typedef struct tDevTypeNodeTotal
 {
 	int dev4chCtrlTotal;
 	tDev_4channelCtl_Typedef *ptDev4ChCtl;
